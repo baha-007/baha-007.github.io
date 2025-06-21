@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Explorer - Dark Mode</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Modern Dark Theme Styles (User's Original) */
+        :root {
+            --primary-color: #7f5af0; 
+            --secondary-color: #2cb67d; 
+            --background-color: #16161a; 
+            --card-color: #242629; 
+            --text-color: #fffffe; 
+            --text-light: #94a1b2; 
+            --border-radius: 8px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            --transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            --input-bg-color: #2d333a; 
+            --border-color: #444857;
+            --primary-color-rgb: 127, 90, 240; /* For rgba box-shadows */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container { width: 90%; max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+
+        /* Header Styles */
+        header {
+            color: var(--text-color); padding: 1rem 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            position: sticky; top: 0; z-index: 100;
+            background: linear-gradient(270deg, #1a1a2e, #1e1e24, var(--primary-color));
+            background-size: 600% 600%;
+            animation: gradientBG 16s ease infinite;
+        }
+        @keyframes gradientBG { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; }
+        header h1 { font-size: 1.9rem; font-weight: 700; color: var(--text-color); white-space: nowrap; transition: var(--transition); letter-spacing: 0.5px; cursor: pointer; }
+        header h1:hover { color: var(--primary-color); }
+
+        .search-container { display: flex; flex-grow: 1; max-width: 500px; margin: 0 1rem;}
+        .search-wrapper { position: relative; display: flex; flex: 1; }
+        
+        .search-suggestions {
+            position: fixed; background-color: var(--card-color); border: 1px solid var(--border-color);
+            border-top: none; border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 1001; display: none; 
+            flex-direction: column; max-height: 400px; overflow-y: auto;
+        }
+        .search-suggestions.active { display: flex; }
+        .suggestion-item { display: flex; align-items: center; padding: 10px; cursor: pointer; border-bottom: 1px solid rgba(148, 161, 178, 0.1); transition: background-color 0.2s; }
+        .suggestion-item:last-of-type { border-bottom: none; }
+        .suggestion-item:hover { background-color: rgba(127, 90, 240, 0.1); }
+        .suggestion-thumb { width: 45px; height: 65px; border-radius: 4px; object-fit: cover; margin-right: 12px; flex-shrink: 0; }
+        .suggestion-info { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; }
+        .suggestion-title { font-size: 0.9rem; font-weight: 600; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; text-align: left; }
+        .suggestion-details { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.75rem; color: var(--text-light); }
+        .suggestion-details span { display: flex; align-items: center; }
+        .suggestion-details i { margin-right: 3px; font-size: 0.9em; }
+        .suggestion-details .fa-star { color: var(--secondary-color); }
+        .suggestion-details .year-tag, .suggestion-details .type-tag { background-color: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+        .view-all-suggestions-btn { display: block; width: 100%; padding: 12px; background-color: transparent; color: var(--text-light); border: none; border-top: 1px solid rgba(148, 161, 178, 0.1); text-align: center; font-weight: 600; cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+        .view-all-suggestions-btn:hover { background-color: rgba(127, 90, 240, 0.2); color: var(--primary-color);}
+        .view-all-suggestions-btn i { margin-left: 8px; }
+
+        #search-input { flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--border-color); background-color: var(--input-bg-color); color: var(--text-color); border-radius: var(--border-radius) 0 0 var(--border-radius); font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        #search-input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.3); }
+        #search-button { background-color: var(--primary-color); color: white; border: none; padding: 0 1.2rem; cursor: pointer; border-radius: 0 var(--border-radius) var(--border-radius) 0; transition: var(--transition); }
+        #search-button:hover { background-color: #6b47d3; }
+        #search-toggle-btn { display: none; background: none; border: none; color: var(--text-light); font-size: 1.4rem; cursor: pointer; padding: 8px; margin-left: auto; transition: var(--transition); }
+        #search-toggle-btn:hover { color: var(--text-color); }
+
+        /* Filters */
+        .filters { display: flex; justify-content: flex-start; margin: 2rem 0; flex-wrap: wrap; gap: 1rem; }
+        .filters select, .filters .btn { padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--input-bg-color); color: var(--text-color); font-size: 0.9rem; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
+        .filters select:focus, .filters .btn:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.3); }
+        /* Style for active watchlist button */
+        .filters .btn.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .filters .btn:hover:not(.active) { background-color: var(--card-color); }
+
+
+        /* Card Entrance Animation */
+        @keyframes cardFadeInUp { from { opacity: 0; transform: translateY(30px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        /* Anime Grid */
+        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; align-items: stretch; }
+        
+        .anime-card {
+            background-color: transparent; border-radius: var(--border-radius); overflow: visible; 
+            box-shadow: none; transition: transform 0.3s ease-out; cursor: pointer; border: none;
+            display: flex; flex-direction: column; position: relative;
+            opacity: 0; /* Start hidden for animation */
+            animation: cardFadeInUp 0.6s ease-out forwards;
+        }
+        .anime-card:hover { transform: translateY(-5px); }
+        .anime-card:hover .anime-card-title-bottom { color: var(--primary-color); }
+
+        .anime-card-image-container {
+            position: relative; width: 100%; padding-bottom: 145%; 
+            border-radius: var(--border-radius); overflow: hidden; background-color: var(--card-color);
+            box-shadow: var(--box-shadow); border: 1px solid transparent; transition: var(--transition);
+        }
+        .anime-card:hover .anime-card-image-container { box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3), 0 0 10px rgba(var(--primary-color-rgb), 0.3); border-color: var(--primary-color); }
+        .anime-card img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.35s ease-out; }
+        .anime-card:hover img { transform: scale(1.05); }
+
+        /* Style for the bookmark icon on cards */
+        .bookmark-icon {
+            position: absolute; top: 10px; right: 10px; z-index: 5;
+            font-size: 1.2rem; color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(0,0,0,0.5); padding: 6px; border-radius: 50%;
+            transition: color 0.3s, transform 0.3s;
+            display: none; /* Hidden by default, shown via JS */
+        }
+        .bookmark-icon.bookmarked { color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color); display: block; }
+        .anime-card:hover .bookmark-icon { transform: scale(1.1); }
+
+        .anime-card-title-bottom { font-size: 0.95rem; font-weight: 500; color: var(--text-light); margin-top: 10px; line-height: 1.4; text-align: center; word-wrap: break-word; transition: color 0.2s; }
+        .loading, .no-results, .error-message { grid-column: 1 / -1; text-align: center; padding: 3rem 0; font-size: 1.1rem; color: var(--text-light); }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(127, 90, 240, 0.3); border-radius: 50%; border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; margin: 0 auto 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-message i { color: var(--secondary-color); margin-right: 0.5rem; font-size: 1.5rem; }
+        
+        .pagination { display: flex; justify-content: center; align-items: center; margin: 2.5rem 0; }
+        .pagination button { background-color: var(--primary-color); color: white; border: none; padding: 0.6rem 1.2rem; margin: 0 0.5rem; border-radius: var(--border-radius); cursor: pointer; transition: var(--transition); font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem;}
+        .pagination button:hover:not(:disabled) { background-color: #6b47d3; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(var(--primary-color-rgb), 0.3); }
+        .pagination button:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 6px rgba(var(--primary-color-rgb), 0.2); }
+        .pagination button:disabled { background-color: #3a3d4a; color: var(--text-light); cursor: not-allowed; }
+        .pagination span { margin: 0 1rem; color: var(--text-light); }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(10, 10, 15, 0.85); backdrop-filter: blur(5px);}
+        .modal-content-wrapper { background-color: var(--card-color); margin: 5% auto; padding: 2.5rem; border-radius: var(--border-radius); max-width: 800px; width: 90%; position: relative; animation: modalScaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color); }
+        @keyframes modalScaleIn { from { opacity: 0; transform: scale(0.9) translateY(-20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .close-button { position: absolute; top: 1.5rem; right: 1.5rem; color: var(--text-light); font-size: 1.8rem; cursor: pointer; transition: color 0.2s, transform 0.2s; }
+        .close-button:hover { color: var(--text-color); transform: rotate(90deg); }
+        .anime-details { display: flex; flex-wrap: wrap; gap: 2rem; }
+        .anime-poster { flex: 0 0 250px; }
+        .anime-poster img { width: 100%; border-radius: var(--border-radius); box-shadow: var(--box-shadow); }
+        .anime-info { flex: 1; min-width: 300px; }
+        .anime-info h2 { margin-bottom: 1rem; color: var(--primary-color); font-size: 1.8rem; font-weight: 700; }
+        .anime-info .info-row { display: flex; margin-bottom: 0.6rem; line-height: 1.5; }
+        .anime-info .info-label { font-weight: 600; width: 130px; flex-shrink: 0; color: var(--text-color); }
+        .anime-info .info-value { flex-grow: 1; color: var(--text-light); word-break: break-word; }
+        .anime-synopsis { margin-top: 1.5rem; }
+        .anime-synopsis h3 { margin-bottom: 0.8rem; color: var(--primary-color); font-size: 1.3rem; font-weight: 600; }
+        .anime-synopsis p { color: var(--text-light); line-height: 1.7; }
+        
+        /* Styles for watchlist button in modal */
+        .watchlist-btn-container { margin-top: 1.5rem; }
+        .watchlist-btn {
+            background-color: var(--secondary-color); color: white; border: none; padding: 0.8rem 1.5rem;
+            border-radius: var(--border-radius); cursor: pointer; transition: var(--transition);
+            font-weight: 600; font-size: 1rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .watchlist-btn:hover { opacity: 0.9; }
+        .watchlist-btn.in-watchlist { background-color: #d32f2f; }
+        .watchlist-btn:disabled { background-color: #3a3d4a; cursor: not-allowed; }
+
+
+        footer { background-color: #1e1e24; color: var(--text-light); padding: 2rem 0; text-align: center; margin-top: 3rem; border-top: 1px solid var(--border-color); }
+        footer p { margin: 0.3rem 0; font-size: 0.9rem; }
+        footer p:first-child { color: var(--text-color); }
+        
+        #scrollToTopBtn {
+            display: none; position: fixed; bottom: 20px; right: 30px; z-index: 999;
+            border: none; outline: none; background-color: var(--primary-color); color: white;
+            cursor: pointer; width: 50px; height: 50px; border-radius: 50%;
+            font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s, background-color 0.3s;
+            opacity: 0; visibility: hidden; transform: translateY(20px);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #scrollToTopBtn.show { display: flex; opacity: 1; visibility: visible; transform: translateY(0); }
+        #scrollToTopBtn:hover { background-color: #6b47d3; transform: scale(1.1); }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header .container.search-active { justify-content: center; }
+            .search-container { max-width: 0; opacity: 0; overflow: hidden; transition: var(--transition); margin: 0;}
+            .search-active .search-container { max-width: 100%; opacity: 1; }
+            #search-toggle-btn { display: inline-block; }
+            .search-active #search-toggle-btn { display: none; }
+            #site-title { transition: var(--transition); flex-grow: 1; }
+            .search-active #site-title { opacity: 0; width: 0; margin: 0; padding: 0; }
+            .anime-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } 
+            .modal-content-wrapper { margin: 10% auto; padding: 1.5rem; }
+            .anime-poster { max-width: 200px; margin: 0 auto 1rem; }
+            .anime-info h2 { font-size: 1.5rem; }
+        }
+        @media (max-width: 480px) {
+            .filters { flex-direction: column; }
+            .filters select, .filters .btn { width: 100%; }
+            .anime-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; } 
+            .anime-card-title-bottom { font-size: 0.8rem; }
+            .pagination button { padding: 0.4rem 0.8rem; font-size: 0.9rem; }
+            #scrollToTopBtn { right: 15px; bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 id="site-title">ANIMEHUB</h1>
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <input type="text" id="search-input" placeholder="Search...">
+                    <button id="search-button"><i class="fas fa-search"></i></button>
+                    <div id="search-suggestions" class="search-suggestions"></div>
+                </div>
+            </div>
+            <button id="search-toggle-btn" class="icon-button"><i class="fas fa-search"></i></button>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="filters">
+                <button id="watchlist-btn" class="btn"><i class="fas fa-bookmark"></i> My Watchlist</button>
+                <select id="genre-filter">
+                    <option value="">All Genres</option>
+                    <option value="1">Action</option>
+                    <option value="2">Adventure</option>
+                    <option value="4">Comedy</option>
+                    <option value="8">Drama</option>
+                    <option value="10">Fantasy</option>
+                    <option value="24">Sci-Fi</option>
+                    <option value="37">Supernatural</option>
+                    <option value="41">Suspense</option>
+                </select>
+                <select id="sort-filter">
+                    <option value="popularity">Sort by Popularity</option>
+                    <option value="title">Sort by Title</option>
+                    <option value="rating">Sort by Rating</option>
+                    <option value="release">Sort by Release Date</option>
+                </select>
+            </div>
+            
+            <div id="anime-grid" class="anime-grid">
+                <!-- Anime cards will be dynamically inserted here -->
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading anime data...</p>
+                </div>
+            </div>
+            
+            <div id="pagination" class="pagination">
+                <button id="prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                <span id="page-info">Page 1</span>
+                <button id="next-page">Next <i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </main>
+
+    <div id="anime-modal" class="modal">
+        <div class="modal-content-wrapper"> 
+            <span class="close-button">&times;</span>
+            <div id="modal-body-content"></div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AnimeHub. All rights reserved.</p>
+            <p>Data provided by Jikan API</p>
+        </div>
+    </footer>
+
+    <button id="scrollToTopBtn" title="Go to top"><i class="fas fa-arrow-up"></i></button>
+
+    <!-- Firebase SDK and Application Logic -->
+    <script type="module">
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config)
+            : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- Global App State ---
+        const API_URL = 'https://api.jikan.moe/v4';
+        const ITEMS_PER_PAGE = 21; 
+        let db, auth;
+        let userId = null;
+        let isAuthReady = false;
+        let watchlistIds = new Set();
+        let currentView = 'explore';
+        
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentSearch = '';
+        let currentGenre = '';
+        let currentSort = 'popularity';
+        let isLoading = false;
+        let searchTimeout = null;
+
+        // --- DOM Elements ---
+        const DOMElements = {
+            headerContainer: document.querySelector('header .container'),
+            animeGrid: document.getElementById('anime-grid'),
+            searchInput: document.getElementById('search-input'),
+            searchButton: document.getElementById('search-button'),
+            searchToggleBtn: document.getElementById('search-toggle-btn'),
+            siteTitle: document.getElementById('site-title'),
+            suggestionsContainer: document.getElementById('search-suggestions'),
+            genreFilter: document.getElementById('genre-filter'),
+            sortFilter: document.getElementById('sort-filter'),
+            watchlistBtn: document.getElementById('watchlist-btn'),
+            pagination: document.getElementById('pagination'),
+            prevPageBtn: document.getElementById('prev-page'),
+            nextPageBtn: document.getElementById('next-page'),
+            pageInfo: document.getElementById('page-info'),
+            animeModal: document.getElementById('anime-modal'),
+            modalBodyContent: document.getElementById('modal-body-content'),
+            closeButton: document.querySelector('.close-button'),
+            scrollToTopBtn: document.getElementById('scrollToTopBtn'),
+        };
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+            setupEventListeners();
+        });
+        
+        async function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        await setupWatchlistListener(userId);
+                    }
+                    isAuthReady = true;
+                    // Trigger initial data fetch once auth is confirmed
+                    if (currentView === 'explore') fetchAnimeData();
+                    else fetchWatchlistData();
+                });
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                displayError("Could not connect user services. Watchlist is disabled.");
+                isAuthReady = true; // Allow app to function without watchlist
+                fetchAnimeData();
+            }
+        }
+        
+        function setupEventListeners() {
+            DOMElements.searchButton.addEventListener('click', handleSearch);
+            DOMElements.searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleSearch(); });
+            DOMElements.searchInput.addEventListener('input', () => {
+                const query = DOMElements.searchInput.value.trim();
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => fetchSearchSuggestions(query), 300);
+            });
+            DOMElements.searchToggleBtn.addEventListener('click', toggleSearchMode);
+            DOMElements.genreFilter.addEventListener('change', handleFilters);
+            DOMElements.sortFilter.addEventListener('change', handleFilters);
+            DOMElements.watchlistBtn.addEventListener('click', handleWatchlistClick);
+            DOMElements.prevPageBtn.addEventListener('click', () => navigatePage('prev'));
+            DOMElements.nextPageBtn.addEventListener('click', () => navigatePage('next'));
+            DOMElements.closeButton.addEventListener('click', closeModal);
+            window.addEventListener('click', e => { if (e.target === DOMElements.animeModal) closeModal(); });
+            DOMElements.siteTitle.addEventListener('click', resetToHome);
+            document.addEventListener('click', e => {
+                if (!e.target.closest('.search-wrapper') && !e.target.closest('.search-suggestions')) {
+                    DOMElements.suggestionsContainer.classList.remove('active');
+                }
+            });
+            window.addEventListener('scroll', handleScrollToTopButton, { passive: true });
+            window.addEventListener('resize', positionSuggestions); // Recalculate on resize/rotate
+            DOMElements.scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        }
+
+        // --- Watchlist (Firestore) Functions ---
+        async function setupWatchlistListener(uid) {
+            const watchlistCollectionRef = collection(db, 'artifacts', appId, 'users', uid, 'watchlist');
+            onSnapshot(watchlistCollectionRef, (snapshot) => {
+                const newIds = new Set();
+                snapshot.forEach(doc => newIds.add(doc.id));
+                watchlistIds = newIds;
+                updateAllUIForWatchlist();
+            }, (error) => console.error("Error with watchlist listener:", error));
+        }
+        
+        function updateAllUIForWatchlist() {
+            updateBookmarkIcons();
+            if (currentView === 'watchlist') {
+                 fetchWatchlistData();
+            }
+            // Also update the modal button if it's open
+            const modalBtn = document.getElementById('modal-watchlist-btn');
+            if (modalBtn) {
+                const animeId = modalBtn.dataset.id;
+                const isInWatchlist = watchlistIds.has(animeId);
+                modalBtn.className = `watchlist-btn ${isInWatchlist ? 'in-watchlist' : ''}`;
+                modalBtn.innerHTML = isInWatchlist ? '<i class="fas fa-trash-alt"></i> Remove from Watchlist' : '<i class="fas fa-plus-circle"></i> Add to Watchlist';
+            }
+        }
+
+        async function addToWatchlist(animeData) {
+            if (!isAuthReady || !userId) return;
+            const animeId = String(animeData.mal_id);
+            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'watchlist', animeId);
+            const simpleData = {
+                mal_id: animeData.mal_id,
+                title: animeData.title_english || animeData.title,
+                images: { jpg: { image_url: animeData.images?.jpg?.image_url || '' } },
+                score: animeData.score || null,
+            };
+            await setDoc(docRef, simpleData);
+        }
+
+        async function removeFromWatchlist(animeId) {
+            if (!isAuthReady || !userId) return;
+            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'watchlist', String(animeId));
+            await deleteDoc(docRef);
+        }
+        
+        async function fetchWatchlistData() {
+            showLoading();
+            currentView = 'watchlist';
+            DOMElements.pagination.style.display = 'none'; // No pagination for watchlist
+            if (!isAuthReady || !userId) {
+                displayError("Please wait for user services to connect...");
+                return;
+            }
+            const watchlistCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'watchlist');
+            const querySnapshot = await getDocs(watchlistCollectionRef);
+            const animes = [];
+            querySnapshot.forEach(doc => animes.push(doc.data()));
+            displayAnimeData(animes);
+            isLoading = false; // Manually set loading to false for this path
+        }
+
+        // --- Jikan API & Display Functions ---
+        async function fetchWithRetry(url, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url);
+                    if (response.status === 429) throw new Error('rate-limited');
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    return response.json();
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    console.warn(`Fetch failed. Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // ==================================================================
+        // === PAGINATION FIX: This function has been updated. ===
+        // ==================================================================
+        async function fetchAnimeData() {
+            if (!isAuthReady) { showLoading(); return; }
+            showLoading(); // Sets isLoading = true
+            
+            DOMElements.pagination.style.display = 'flex';
+            currentView = 'explore';
+            let url = `${API_URL}/anime?page=${currentPage}&limit=${ITEMS_PER_PAGE}&sfw=true`;
+            if (currentSearch) url += `&q=${encodeURIComponent(currentSearch)}`;
+            if (currentGenre) url += `&genres=${currentGenre}`;
+            url += '&genres_exclude=12,9'; // Exclude Hentai, Ecchi
+            switch (currentSort) {
+                case 'title': url += '&order_by=title&sort=asc'; break;
+                case 'rating': url += '&order_by=score&sort=desc'; break;
+                case 'release': url += '&order_by=start_date&sort=desc'; break;
+                default: url += '&order_by=members&sort=desc';
+            }
+            
+            try {
+                const data = await fetchWithRetry(url);
+                displayAnimeData(data.data || []);
+                if (data.pagination) {
+                    updatePagination(data.pagination);
+                    DOMElements.pagination.style.display = data.pagination.last_visible_page > 1 ? 'flex' : 'none';
+                } else {
+                    // Hide pagination if the object is missing (e.g., search with few results)
+                    DOMElements.pagination.style.display = 'none';
+                }
+            } catch (error) {
+                displayError('Failed to load anime data. The API may be busy.'); // This also sets isLoading = false
+            } finally {
+                // FIX: This ensures isLoading is always set to false after the fetch is done.
+                isLoading = false;
+            }
+        }
+
+        function displayAnimeData(animeList) {
+            DOMElements.animeGrid.innerHTML = '';
+            if (!animeList || animeList.length === 0) {
+                DOMElements.animeGrid.innerHTML = `<div class="no-results">${currentView === 'watchlist' ? 'Your watchlist is empty.' : 'No anime found.'}</div>`;
+                return;
+            }
+            animeList.forEach((anime, index) => {
+                const card = document.createElement('div');
+                card.className = 'anime-card';
+                card.dataset.id = anime.mal_id;
+                card.style.animationDelay = `${index * 0.05}s`;
+                const imageUrl = anime.images?.jpg?.image_url || `https://placehold.co/220x300/16161a/fffffe?text=N/A`;
+                const title = anime.title_english || anime.title || 'Unknown Title';
+                card.innerHTML = `
+                    <div class="anime-card-image-container">
+                         <i class="fas fa-bookmark bookmark-icon"></i>
+                        <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/220x300/16161a/fffffe?text=N/A';">
+                    </div>
+                    <div class="anime-card-title-bottom">${title}</div>
+                `;
+                card.addEventListener('click', () => openAnimeDetails(anime.mal_id));
+                DOMElements.animeGrid.appendChild(card);
+            });
+            updateBookmarkIcons();
+        }
+
+        function updateBookmarkIcons() {
+             document.querySelectorAll('.anime-card').forEach(card => {
+                const animeId = card.dataset.id;
+                const icon = card.querySelector('.bookmark-icon');
+                if (icon) icon.classList.toggle('bookmarked', watchlistIds.has(animeId));
+            });
+        }
+
+        function positionSuggestions() {
+            if (!DOMElements.suggestionsContainer || !DOMElements.searchInput || !DOMElements.suggestionsContainer.classList.contains('active')) return;
+            
+            const header = document.querySelector('header');
+            const headerRect = header.getBoundingClientRect();
+
+            if (window.innerWidth <= 768) {
+                // Mobile view: Position below the header, full width
+                DOMElements.suggestionsContainer.style.top = `${headerRect.bottom}px`;
+                DOMElements.suggestionsContainer.style.left = '0px';
+                DOMElements.suggestionsContainer.style.width = '100%';
+                DOMElements.suggestionsContainer.style.borderRadius = '0';
+            } else {
+                // Desktop view: Position below the search input
+                const inputRect = DOMElements.searchInput.getBoundingClientRect();
+                DOMElements.suggestionsContainer.style.top = `${inputRect.bottom + 5}px`;
+                DOMElements.suggestionsContainer.style.left = `${inputRect.left}px`;
+                DOMElements.suggestionsContainer.style.width = `${inputRect.width}px`;
+                DOMElements.suggestionsContainer.style.borderRadius = '0 0 var(--border-radius) var(--border-radius)';
+            }
+        }
+        
+        async function fetchSearchSuggestions(query) {
+            if (query.length < 3) {
+                DOMElements.suggestionsContainer.classList.remove('active');
+                return;
+            }
+            const url = `${API_URL}/anime?q=${encodeURIComponent(query)}&limit=5&sfw=true&genres_exclude=12,9`;
+            try {
+                const data = await fetchWithRetry(url);
+                displaySuggestions(data.data || []);
+            } catch (error) {
+                console.error("Suggestion fetch error:", error);
+                DOMElements.suggestionsContainer.classList.remove('active');
+            }
+        }
+
+        function displaySuggestions(suggestions) {
+            DOMElements.suggestionsContainer.innerHTML = '';
+            if (suggestions.length === 0) {
+                DOMElements.suggestionsContainer.classList.remove('active');
+                return;
+            }
+            suggestions.forEach(anime => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerHTML = `
+                    <img src="${anime.images?.jpg?.image_url || 'https://placehold.co/45x65'}" class="suggestion-thumb" alt="">
+                    <div class="suggestion-info">
+                        <div class="suggestion-title">${anime.title}</div>
+                        <div class="suggestion-details">
+                            <span class="year-tag">${anime.year || 'N/A'}</span>
+                            <span class="type-tag">${anime.type || 'N/A'}</span>
+                            ${anime.score ? `<span><i class="fas fa-star"></i> ${anime.score.toFixed(1)}</span>` : ''}
+                        </div>
+                    </div>`;
+                item.addEventListener('click', () => {
+                    DOMElements.searchInput.value = anime.title || '';
+                    handleSearch();
+                });
+                DOMElements.suggestionsContainer.appendChild(item);
+            });
+            const viewAllBtn = document.createElement('button');
+            viewAllBtn.className = 'view-all-suggestions-btn';
+            viewAllBtn.innerHTML = 'VIEW ALL <i class="fas fa-arrow-right"></i>';
+            viewAllBtn.addEventListener('click', handleSearch);
+            DOMElements.suggestionsContainer.appendChild(viewAllBtn);
+            
+            DOMElements.suggestionsContainer.classList.add('active');
+            positionSuggestions(); // Call the updated position function
+        }
+
+        async function openAnimeDetails(animeId) {
+            if (isLoading) return; // Prevent opening while another load is happening
+            isLoading = true;
+            try {
+                const data = await fetchWithRetry(`${API_URL}/anime/${animeId}/full`);
+                if (data.data) {
+                    displayAnimeDetails(data.data);
+                    DOMElements.animeModal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                }
+            } catch (error) { console.error('Error fetching details:', error); }
+            finally { isLoading = false; }
+        }
+
+        function displayAnimeDetails(anime) {
+            const isInWatchlist = watchlistIds.has(String(anime.mal_id));
+            const imageUrl = anime.images?.jpg?.large_image_url || `https://placehold.co/250x350`;
+            const synopsis = anime.synopsis || 'No synopsis available.';
+            DOMElements.modalBodyContent.innerHTML = `
+                <div class="anime-details">
+                    <div class="anime-poster"><img src="${imageUrl}" alt="${anime.title}"></div>
+                    <div class="anime-info">
+                        <h2>${anime.title}</h2>
+                        <div class="info-row"><span class="info-label">Japanese:</span> <span class="info-value">${anime.title_japanese || 'N/A'}</span></div>
+                        <div class="info-row"><span class="info-label">Score:</span> <span class="info-value"><i class="fas fa-star"></i> ${anime.score ? `${anime.score} (${anime.scored_by?.toLocaleString() || 0} votes)` : 'N/A'}</span></div>
+                        <div class="info-row"><span class="info-label">Rank:</span> <span class="info-value">${anime.rank ? `#${anime.rank.toLocaleString()}` : 'N/A'}</span></div>
+                        <div class="info-row"><span class="info-label">Episodes:</span> <span class="info-value">${anime.episodes || 'N/A'}</span></div>
+                        <div class="info-row"><span class="info-label">Status:</span> <span class="info-value">${anime.status || 'N/A'}</span></div>
+                        <div class="info-row"><span class="info-label">Genres:</span> <span class="info-value">${anime.genres?.map(g => g.name).join(', ') || 'N/A'}</span></div>
+                        <div class="watchlist-btn-container">
+                           <button id="modal-watchlist-btn" class="watchlist-btn ${isInWatchlist ? 'in-watchlist' : ''}" data-id="${anime.mal_id}">
+                                ${isInWatchlist ? '<i class="fas fa-trash-alt"></i> Remove from Watchlist' : '<i class="fas fa-plus-circle"></i> Add to Watchlist'}
+                           </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="anime-synopsis"><h3>Synopsis</h3><p>${synopsis.replace(/\n/g, '<br>')}</p></div>
+            `;
+            // Attach event listener to the new button
+            document.getElementById('modal-watchlist-btn').addEventListener('click', async (e) => {
+                if (!isAuthReady || !userId) return;
+                const button = e.currentTarget;
+                button.disabled = true;
+                const isAdding = !watchlistIds.has(String(anime.mal_id));
+                if (isAdding) await addToWatchlist(anime);
+                else await removeFromWatchlist(anime.mal_id);
+                button.disabled = false;
+            });
+        }
+
+        // --- Event Handlers & UI Toggles ---
+        function handleSearch() {
+            DOMElements.watchlistBtn.classList.remove('active');
+            currentSearch = DOMElements.searchInput.value.trim();
+            currentPage = 1;
+            fetchAnimeData();
+            DOMElements.suggestionsContainer.classList.remove('active');
+            if (DOMElements.headerContainer.classList.contains('search-active')) toggleSearchMode();
+        }
+
+        function handleFilters() {
+            DOMElements.watchlistBtn.classList.remove('active');
+            currentGenre = DOMElements.genreFilter.value;
+            currentSort = DOMElements.sortFilter.value;
+            currentPage = 1;
+            fetchAnimeData();
+        }
+        
+        function handleWatchlistClick() {
+            DOMElements.watchlistBtn.classList.add('active');
+            DOMElements.searchInput.value = '';
+            DOMElements.genreFilter.value = '';
+            currentSearch = ''; currentGenre = '';
+            fetchWatchlistData();
+        }
+        
+        function resetToHome() {
+            if (DOMElements.headerContainer.classList.contains('search-active')) toggleSearchMode();
+            DOMElements.watchlistBtn.classList.remove('active');
+            DOMElements.searchInput.value = '';
+            DOMElements.genreFilter.value = '';
+            DOMElements.sortFilter.value = 'popularity';
+            currentSearch = ''; currentGenre = ''; currentSort = 'popularity';
+            currentPage = 1;
+            fetchAnimeData();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updatePagination(pagination) {
+            totalPages = pagination.last_visible_page || 1;
+            currentPage = pagination.current_page || 1;
+            DOMElements.pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            DOMElements.prevPageBtn.disabled = !pagination.has_previous_page;
+            DOMElements.nextPageBtn.disabled = !pagination.has_next_page;
+        }
+
+        function navigatePage(direction) {
+            if (isLoading) return;
+            const newPage = direction === 'prev' ? currentPage - 1 : currentPage + 1;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                fetchAnimeData();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function closeModal() { DOMElements.animeModal.style.display = 'none'; document.body.style.overflow = ''; }
+        function showLoading() { isLoading = true; DOMElements.animeGrid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading...</p></div>`; }
+        function displayError(message) { isLoading = false; DOMElements.animeGrid.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i><p>${message}</p></div>`; }
+        function toggleSearchMode() { DOMElements.headerContainer.classList.toggle('search-active'); if(DOMElements.headerContainer.classList.contains('search-active')) DOMElements.searchInput.focus(); }
+        function handleScrollToTopButton() { DOMElements.scrollToTopBtn.classList.toggle('show', window.scrollY > 200); }
+    </script>
+
+</body>
+</html>
+
